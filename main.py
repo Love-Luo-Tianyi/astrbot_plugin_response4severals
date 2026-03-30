@@ -22,7 +22,6 @@ from astrbot.core.agent.message import (
 )
 
 from astrbot.core.conversation_mgr import Conversation
-from astrbot.api.event import MessageChain
 @dataclass
 class _SessionState:
     is_listening: bool = False
@@ -81,7 +80,11 @@ class Chat4severals_Plugin(Star):
                     collected = state.buffer
                     logger.info("Collected messages for %s: %s", session_key, collected)
                     # event.message_str = collected
-                    await self.send_prompt(event, collected)
+                    text_resp = await self.send_prompt(event, collected)
+                    if text_resp:
+                        yield event.plain_result(text_resp)
+                    else:
+                        logger.warning("send_prompt 未返回任何内容，会话 %s", session_key)
                     state.buffer = ""
                     event.stop_event()
                 except Exception as e:
@@ -135,9 +138,7 @@ class Chat4severals_Plugin(Star):
                 content=[TextPart(text=llm_resp.completion_text)]
             ),
         )
-        message_chain = MessageChain().message(llm_resp.completion_text)
-        await self.context.send_message(uid, message_chain)
-        # yield event.plain_result(TextPart(text=llm_resp.completion_text))
+        return llm_resp.completion_text
 
     async def get_persona_system_prompt(self, session: str) -> str:
         """获取人格系统提示词
