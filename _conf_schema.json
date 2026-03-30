@@ -3,5 +3,10 @@
     "description": "每次消息后等待的时间（秒）。",
     "type": "float",
     "default": 4.0 
+  },
+  "max_split_length": {
+    "description": "单条消息的最大字符数（按字符计）。段落字符数超过此值时将按单行进一步切割；设为 0 表示仅按段落（双换行）切割。",
+    "type": "int",
+    "default": 0
   }
 }

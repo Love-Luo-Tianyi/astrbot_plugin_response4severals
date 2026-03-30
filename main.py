@@ -135,8 +135,27 @@ class Chat4severals_Plugin(Star):
                 content=[TextPart(text=llm_resp.completion_text)]
             ),
         )
-        message_chain = MessageChain().message(llm_resp.completion_text)
-        await self.context.send_message(uid, message_chain)
+        response_text = llm_resp.completion_text
+        max_len = int(self.config.get("max_split_length", 0))
+
+        # Split by paragraph breaks first
+        paragraphs = [p.strip() for p in response_text.split("\n\n") if p.strip()]
+        if not paragraphs:
+            paragraphs = [response_text]
+
+        # Optionally split long paragraphs further by single newline
+        segments: list[str] = []
+        for para in paragraphs:
+            if max_len > 0 and len(para) > max_len:
+                for line in para.split("\n"):
+                    if line.strip():
+                        segments.append(line.strip())
+            else:
+                segments.append(para)
+
+        for segment in segments:
+            message_chain = MessageChain().message(segment)
+            await self.context.send_message(uid, message_chain)
         # yield event.plain_result(TextPart(text=llm_resp.completion_text))
 
     async def get_persona_system_prompt(self, session: str) -> str:
